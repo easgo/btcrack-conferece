@@ -1,0 +1,53 @@
+main(_) ->
+    io:format("Welcome to BitcoinConfJack WiFi Honey Script!~n"),
+    Args = init:get_arguments(),
+    case Args of
+        [] ->
+            io:format("Please provide the ESSID: "),
+            Essid = read_line(),
+            start(string:strip(Essid, both));
+        [Essid] ->
+            start(string:strip(Essid, both));
+        [Essid, Channel] ->
+            start(string:strip(Essid, both), Channel);
+        [Essid, Channel, Interface] ->
+            start(string:strip(Essid, both), Channel, Interface)
+    end.
+
+start(Essid) ->
+    start(Essid, "1").
+
+start(Essid, Channel) ->
+    start(Essid, Channel, "wlo1mon").
+
+start(Essid, Channel, Interface) ->
+    SedCmd1 = "s/<ESSID>/" ++ Essid ++ "/",
+    SedCmd2 = "s/<CHANNEL>/" ++ Channel ++ "/",
+    SedCmd3 = "s/<INTERFACE>/" ++ Interface ++ "/",
+    SedCmd4 = "\"" ++ SedCmd1 ++ "\"",
+    SedCmd5 = string:join([SedCmd4, SedCmd2], " | sed "),
+    SedCmd6 = string:join([SedCmd5, SedCmd3], " | sed "),
+    BitcoinConfJackTemplateFile = "bitcoinconfjack_template.rc",
+    ScreenBitcoinConfJackFile = "screen_bitcoinconfjack.rc",
+    {ok, BitcoinConfJackTemplate} = file:read_file(BitcoinConfJackTemplateFile
+),
+    Commands = ["screen -c " ++ ScreenBitcoinConfJackFile],
+    SedCommand = "sed " ++ SedCmd6 ++ " > " ++ ScreenBitcoinConfJackFile,
+    ok = file:write_file(ScreenBitcoinConfJackFile, ""),
+    os:cmd(SedCommand),
+    start_screen(ScreenBitcoinConfJackFile, Commands).
+
+start_screen(ConfigFile, Commands) ->
+    io:format("Starting BitcoinConfJack WiFi Honey...~n"),
+    ScreenCmd = "screen -c " ++ ConfigFile ++ " ",
+    Args = ["-D", "-m"],
+    FullCmd = string:join([ScreenCmd | Args | Commands], " "),
+    os:cmd(FullCmd),
+    io:format("BitcoinConfJack WiFi Honey started successfully!~n").
+
+read_line() ->
+    case io:get_line("") of
+        eof -> "";
+        "\n" -> "";
+        Str -> Str
+    end.
